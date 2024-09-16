@@ -329,6 +329,7 @@ export class JiraService {
     }
   }
 
+  @Cron('50 07 * * *')
   async getUserMetrics(accountId: string) {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
