@@ -41,13 +41,12 @@ export class JiraController {
   }
 
   @Post('jira/users/create')
-  async fetchAndSaveUser(@Body() body: { accountId: string }) {
+  async fetchAndSaveUser(@Body() body: { accountId: string }): Promise<IUserResponse> {
     const { accountId } = body;
     if (!accountId) {
       throw new BadRequestException('accountId is required');
     }
-    const result = await this.jiraService.fetchAndSaveUser(accountId);
-    return result;
+    return await this.jiraService.fetchAndSaveUser(accountId);
   }
 
   @Get('users')
@@ -57,17 +56,17 @@ export class JiraController {
   }
 
 
-  // @Get('jira/users/:accountId')
-  // async getUserDetails(@Param('accountId') accountId: string) {
-  //   const userDetails = await this.jiraService.getUserDetails(accountId);
-  //   return userDetails;
-  // }
+  @Get('jira/users/:accountId')
+  async getUserDetails(@Param('accountId') accountId: string): Promise<IJiraUserData> {
+    const userDetails = await this.jiraService.getUserDetails(accountId);
+    return userDetails;
+  }
 
-  // @Get('users/:accountId')
-  // async getUser(@Param('accountId') accountId: string): Promise<UserResponse> {
-  //   const userDetails = await this.jiraService.getUser(accountId);
-  //   return userDetails;
-  // }
+  @Get('users/:accountId')
+  async getUser(@Param('accountId') accountId: string): Promise<IUserResponse> {
+    const userDetails = await this.jiraService.getUser(accountId);
+    return userDetails;
+  }
 
   @Delete('users/:accountId')
   async deleteUser(@Param('accountId') accountId: string): Promise<IUserResponse> {
@@ -86,8 +85,9 @@ export class JiraController {
     return { message: 'Evening issue history updated successfully' };
   }
 
-  @Get('users/:accountId')
-  async getUserMetrics(@Param('accountId') accountId: string) {
-    return await this.jiraService.getUserMetrics(accountId);
+  @Get('metrics')
+  async getUserMetrics() {
+    const result = await this.jiraService.getAllUserMetrics();
+    return result;
   }
 }

@@ -27,13 +27,11 @@ interface IUserResponse {
   users?: User;
 }
 
-
 interface IGetAllUsersResponse {
   message: string;
   statusCode: number;
   users: IJiraUserData[];
 }
-
 
 @Injectable()
 export class JiraService {
@@ -54,20 +52,27 @@ export class JiraService {
     const apiUrl = `${this.jiraBaseUrl}/rest/api/3/user?accountId=${accountId}`;
 
     try {
-      const response = await this.httpService.get<IJiraUserData>(apiUrl, { headers: this.headers }).toPromise();
+      const response = await this.httpService
+        .get<IJiraUserData>(apiUrl, { headers: this.headers })
+        .toPromise();
       return response.data;
     } catch (error) {
       if (error.response && error.response.status === 404) {
-        throw new NotFoundException(`User with accountId ${accountId} not found`);
+        throw new NotFoundException(`User not found`);
       } else if (error.response && error.response.status === 400) {
-        throw new BadRequestException(`Invalid accountId: ${accountId}`);
+        throw new BadRequestException(`Invalid accountId`);
       } else {
-        throw new InternalServerErrorException('Error fetching user details from Jira');
+        throw new InternalServerErrorException(
+          'Error fetching user details from Jira',
+        );
       }
     }
   }
 
-  async saveUser(accountId: string, userData: IJiraUserData): Promise<{ message: string; statusCode: number; user?: User }> {
+  async saveUser(
+    accountId: string,
+    userData: IJiraUserData,
+  ): Promise<{ message: string; statusCode: number; user?: User }> {
     try {
       const avatar48x48 = userData.avatarUrls['48x48'];
 
@@ -75,7 +80,7 @@ export class JiraService {
         accountId: userData.accountId,
         displayName: userData.displayName,
         emailAddress: userData.emailAddress,
-        avatarUrls: avatar48x48, 
+        avatarUrls: avatar48x48,
         currentPerformance: userData.currentPerformance || 0,
       };
 
@@ -100,9 +105,13 @@ export class JiraService {
     }
   }
 
-  async fetchAndSaveUser(accountId: string): Promise<{ message: string; statusCode: number; users?: User }> {
-    const userDetails = await this.getUserDetails(accountId);
-    return await this.saveUser(accountId, userDetails);
+  async fetchAndSaveUser(accountId: string): Promise<IUserResponse> {
+    try {
+      const userDetails = await this.getUserDetails(accountId);
+      return await this.saveUser(accountId, userDetails);
+    } catch (error) {
+      throw new InternalServerErrorException('Error fetching and saving user');
+    }
   }
 
   async getAllUsers(): Promise<IGetAllUsersResponse> {
@@ -125,25 +134,28 @@ export class JiraService {
   async getUser(accountId: string): Promise<IUserResponse> {
     try {
       const users = await this.userModel.findOne({ accountId }).exec();
-  
+
       if (!users) {
-        throw new NotFoundException(`User with accountId ${accountId} not found`);
+        throw new NotFoundException(`User not found`);
       }
-  
       return { message: 'User found successfully', statusCode: 200, users };
     } catch (error) {
-      throw new InternalServerErrorException('Error fetching user from database');
+      throw new InternalServerErrorException(
+        'Error fetching user from database',
+      );
     }
   }
-  
+
   async deleteUser(accountId: string): Promise<IUserResponse> {
     try {
       const deletedUser = await this.userModel.findOneAndDelete({ accountId });
-  
+
       if (!deletedUser) {
-        throw new NotFoundException(`User with accountId ${accountId} not found`);
+        throw new NotFoundException(
+          `User with accountId ${accountId} not found`,
+        );
       }
-  
+
       return {
         message: 'User deleted successfully',
         statusCode: 200,
@@ -152,7 +164,6 @@ export class JiraService {
       throw new InternalServerErrorException('Error deleting user');
     }
   }
-  
 
   async countNotDoneIssues(accountId: string) {
     const notDoneApiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId} AND status!=Done`;
@@ -295,11 +306,9 @@ export class JiraService {
     }
   }
 
-  @Cron('40 07 * * *') 
+  @Cron('37 08 * * *')
   async updateMorningIssueHistory() {
-    console.log(
-      'Running updateMorningIssueHistory'
-    );
+    console.log('Running updateMorningIssueHistory');
     try {
       const users = await this.userModel.find().exec();
       for (const user of users) {
@@ -312,11 +321,9 @@ export class JiraService {
     }
   }
 
-  @Cron('42 07 * * *')
+  @Cron('39 08 * * *')
   async updateEveningIssueHistory() {
-    console.log(
-      'Running updateEveningIssueHistory'
-    );
+    console.log('Running updateEveningIssueHistory');
     try {
       const users = await this.userModel.find().exec();
       for (const user of users) {
@@ -329,104 +336,112 @@ export class JiraService {
     }
   }
 
-  @Cron('50 07 * * *')
-  async getUserMetrics(accountId: string) {
+  @Cron('40 08 * * *')
+  async getAllUserMetrics() {
     try {
-      const user = await this.userModel.findOne({ accountId }).exec();
-  
-      if (!user) {
-        throw new InternalServerErrorException('User not found');
-      }
-  
-      const issueHistory = user.issueHistory;
-  
-      // Aggregate counts by date and calculate metrics
-      const metricsByDay = await Promise.all(
-        issueHistory.map(async (entry) => {
-          const { date, issuesCount } = entry;
-          const counts = issuesCount;
-  
-          let taskCompletionRate = 0;
-          let userStoryCompletionRate = 0;
-          let overallScore = 0;
-  
-          const totalNotDoneTasksAndBugs =
-            counts.notDone.Task + counts.notDone.Bug;
-          const totalDoneTasksAndBugs = counts.done.Task + counts.done.Bug;
-  
-          // Calculate task completion rate only if there are tasks or bugs
-          if (totalNotDoneTasksAndBugs > 0) {
-            taskCompletionRate =
-              (totalDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
-          }
-  
-          // Calculate user story completion rate only if there are user stories
-          if (counts.notDone.Story > 0) {
-            userStoryCompletionRate =
-              (counts.done.Story / counts.notDone.Story) * 100;
-          }
-  
-          // Calculate overall score based on available metrics
-          const nonZeroCompletionRates = [];
-          if (totalNotDoneTasksAndBugs > 0) {
-            nonZeroCompletionRates.push(taskCompletionRate);
-          }
-          if (counts.notDone.Story > 0) {
-            nonZeroCompletionRates.push(userStoryCompletionRate);
-          }
-  
-          // If there are non-zero completion rates, calculate the average
-          if (nonZeroCompletionRates.length > 0) {
-            overallScore =
-              nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
-              nonZeroCompletionRates.length;
-          }
-  
-          // Ensure rates are valid numbers
-          const taskCompletionRateNum = isNaN(taskCompletionRate) ? 0 : taskCompletionRate;
-          const userStoryCompletionRateNum = isNaN(userStoryCompletionRate) ? 0 : userStoryCompletionRate;
-          const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
-  
-          // Update entry with the calculated metrics
-          entry.taskCompletionRate = taskCompletionRateNum;
-          entry.userStoryCompletionRate = userStoryCompletionRateNum;
-          entry.overallScore = overallScoreNum;
-  
-          return {
-            date,
-            numberOfTasks: counts.notDone.Task,
-            numberOfBugs: counts.notDone.Bug,
-            numberOfUserStories: counts.notDone.Story,
-            completedTasks: totalDoneTasksAndBugs,
-            completedUserStories: counts.done.Story,
-            taskCompletionRate: taskCompletionRateNum,
-            userStoryCompletionRate: userStoryCompletionRateNum,
-            overallScore: overallScoreNum,
-          };
+      // Fetch all users
+      const users = await this.userModel.find({}).exec();
+
+      // Process each user to calculate metrics
+      const updatedUsers = await Promise.all(
+        users.map(async (user) => {
+          const issueHistory = user.issueHistory;
+
+          // Aggregate counts by date and calculate metrics
+          const metricsByDay = await Promise.all(
+            issueHistory.map(async (entry) => {
+              const { date, issuesCount } = entry;
+              const counts = issuesCount;
+
+              let taskCompletionRate = 0;
+              let userStoryCompletionRate = 0;
+              let overallScore = 0;
+
+              const totalNotDoneTasksAndBugs =
+                counts.notDone.Task + counts.notDone.Bug;
+              const totalDoneTasksAndBugs = counts.done.Task + counts.done.Bug;
+
+              // Calculate task completion rate only if there are tasks or bugs
+              if (totalNotDoneTasksAndBugs > 0) {
+                taskCompletionRate =
+                  (totalDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
+              }
+
+              // Calculate user story completion rate only if there are user stories
+              if (counts.notDone.Story > 0) {
+                userStoryCompletionRate =
+                  (counts.done.Story / counts.notDone.Story) * 100;
+              }
+
+              // Calculate overall score based on available metrics
+              const nonZeroCompletionRates = [];
+              if (totalNotDoneTasksAndBugs > 0) {
+                nonZeroCompletionRates.push(taskCompletionRate);
+              }
+              if (counts.notDone.Story > 0) {
+                nonZeroCompletionRates.push(userStoryCompletionRate);
+              }
+
+              // If there are non-zero completion rates, calculate the average
+              if (nonZeroCompletionRates.length > 0) {
+                overallScore =
+                  nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
+                  nonZeroCompletionRates.length;
+              }
+
+              // Ensure rates are valid numbers
+              const taskCompletionRateNum = isNaN(taskCompletionRate)
+                ? 0
+                : taskCompletionRate;
+              const userStoryCompletionRateNum = isNaN(userStoryCompletionRate)
+                ? 0
+                : userStoryCompletionRate;
+              const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
+
+              // Update entry with the calculated metrics
+              entry.taskCompletionRate = taskCompletionRateNum;
+              entry.userStoryCompletionRate = userStoryCompletionRateNum;
+              entry.overallScore = overallScoreNum;
+
+              return {
+                date,
+                numberOfTasks: counts.notDone.Task,
+                numberOfBugs: counts.notDone.Bug,
+                numberOfUserStories: counts.notDone.Story,
+                completedTasks: totalDoneTasksAndBugs,
+                completedUserStories: counts.done.Story,
+                taskCompletionRate: taskCompletionRateNum,
+                userStoryCompletionRate: userStoryCompletionRateNum,
+                overallScore: overallScoreNum,
+              };
+            }),
+          );
+
+          // Calculate current performance by averaging overall scores
+          const totalScore = metricsByDay.reduce(
+            (sum, day) => sum + day.overallScore,
+            0,
+          );
+          const currentPerformance = metricsByDay.length
+            ? totalScore / metricsByDay.length
+            : 0;
+
+          user.currentPerformance = currentPerformance;
+          user.issueHistory = issueHistory;
+          await user.save();
+
+          return user;
         }),
       );
-  
-      // Calculate current performance by averaging overall scores
-      const totalScore = metricsByDay.reduce(
-        (sum, day) => sum + day.overallScore,
-        0,
-      );
-      const currentPerformance = metricsByDay.length
-        ? (totalScore / metricsByDay.length)
-        : 0;
-  
-      user.currentPerformance = currentPerformance;
-      user.issueHistory = issueHistory;
-      await user.save();
-  
+
       return {
-        user
+        message: 'User metrics calculated successfully',
+        users: updatedUsers,
       };
     } catch (error) {
       throw new InternalServerErrorException(
         `Error getting user metrics: ${error.message}`,
       );
     }
-  }  
+  }
 }
-  
