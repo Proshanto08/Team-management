@@ -10,10 +10,24 @@ import {
 import { JiraService } from './jira.service';
 import { User } from 'src/users/schemas/user.schema';
 
-interface UserResponse {
+interface IJiraUserData {
+  accountId: string;
+  displayName: string;
+  emailAddress: string;
+  avatarUrls: string;
+  currentPerformance?: number;
+}
+
+interface IUserResponse {
   message: string;
   statusCode: number;
   users?: User;
+}
+
+interface IGetAllUsersResponse {
+  message: string;
+  statusCode: number;
+  users: IJiraUserData[];
 }
 
 @Controller()
@@ -37,10 +51,11 @@ export class JiraController {
   }
 
   @Get('users')
-  async getAllUsers() {
+  async getAllUsers(): Promise<IGetAllUsersResponse> {
     const users = await this.jiraService.getAllUsers();
     return users;
   }
+
 
   // @Get('jira/users/:accountId')
   // async getUserDetails(@Param('accountId') accountId: string) {
@@ -55,7 +70,7 @@ export class JiraController {
   // }
 
   @Delete('users/:accountId')
-  async deleteUser(@Param('accountId') accountId: string): Promise<UserResponse> {
+  async deleteUser(@Param('accountId') accountId: string): Promise<IUserResponse> {
     return await this.jiraService.deleteUser(accountId);
   }
 

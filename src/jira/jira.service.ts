@@ -21,10 +21,17 @@ interface IJiraUserData {
   currentPerformance?: number;
 }
 
-interface UserResponse {
+interface IUserResponse {
   message: string;
   statusCode: number;
   users?: User;
+}
+
+
+interface IGetAllUsersResponse {
+  message: string;
+  statusCode: number;
+  users: IJiraUserData[];
 }
 
 
@@ -98,7 +105,7 @@ export class JiraService {
     return await this.saveUser(accountId, userDetails);
   }
 
-  async getAllUsers() {
+  async getAllUsers(): Promise<IGetAllUsersResponse> {
     try {
       const users = await this.userModel
         .find(
@@ -115,7 +122,7 @@ export class JiraService {
     }
   }
 
-  async getUser(accountId: string): Promise<UserResponse> {
+  async getUser(accountId: string): Promise<IUserResponse> {
     try {
       const users = await this.userModel.findOne({ accountId }).exec();
   
@@ -129,7 +136,7 @@ export class JiraService {
     }
   }
   
-  async deleteUser(accountId: string): Promise<UserResponse> {
+  async deleteUser(accountId: string): Promise<IUserResponse> {
     try {
       const deletedUser = await this.userModel.findOneAndDelete({ accountId });
   
@@ -288,7 +295,7 @@ export class JiraService {
     }
   }
 
-  @Cron('28 12 * * *') 
+  @Cron('40 07 * * *') 
   async updateMorningIssueHistory() {
     console.log(
       'Running updateMorningIssueHistory'
@@ -305,7 +312,7 @@ export class JiraService {
     }
   }
 
-  @Cron('30 12 * * *')
+  @Cron('42 07 * * *')
   async updateEveningIssueHistory() {
     console.log(
       'Running updateEveningIssueHistory'
