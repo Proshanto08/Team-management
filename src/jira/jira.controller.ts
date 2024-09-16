@@ -6,9 +6,10 @@ import {
   Param,
   BadRequestException,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { JiraService } from './jira.service';
-import { User } from 'src/users/schemas/user.schema';
+import { IUser } from 'src/users/schemas/user.schema';
 
 interface IJiraUserData {
   accountId: string;
@@ -21,13 +22,29 @@ interface IJiraUserData {
 interface IUserResponse {
   message: string;
   statusCode: number;
-  users?: User;
+  users?: IUser;
 }
 
 interface IGetAllUsersResponse {
   message: string;
   statusCode: number;
   users: IJiraUserData[];
+}
+
+interface IJiraIssueData {
+  key: string;
+  fields: {
+    summary: string;
+    status: {
+      name: string;
+    };
+  };
+}
+
+interface IGetUserIssuesResponse {
+  message: string;
+  statusCode: number;
+  issues: IJiraIssueData[];
 }
 
 @Controller()
@@ -40,8 +57,15 @@ export class JiraController {
     return { serverTime };
   }
 
+  @Get('user/:accountId/issues')
+  async getUserIssues(@Param('accountId') accountId: string): Promise<IGetUserIssuesResponse>  {
+    return this.jiraService.getUserIssues(accountId);
+  }
+
   @Post('jira/users/create')
-  async fetchAndSaveUser(@Body() body: { accountId: string }): Promise<IUserResponse> {
+  async fetchAndSaveUser(
+    @Body() body: { accountId: string },
+  ): Promise<IUserResponse> {
     const { accountId } = body;
     if (!accountId) {
       throw new BadRequestException('accountId is required');
@@ -50,14 +74,21 @@ export class JiraController {
   }
 
   @Get('users')
-  async getAllUsers(): Promise<IGetAllUsersResponse> {
-    const users = await this.jiraService.getAllUsers();
-    return users;
+  async getAllUsers(
+    @Query('page') page: string = '1', 
+    @Query('limit') limit: string = '10'
+  ): Promise<IGetAllUsersResponse> {
+    const pageNumber = parseInt(page, 10) || 1;
+    const limitNumber = parseInt(limit, 10) || 10;
+  
+    return this.jiraService.getAllUsers(pageNumber, limitNumber);
   }
-
+  
 
   @Get('jira/users/:accountId')
-  async getUserDetails(@Param('accountId') accountId: string): Promise<IJiraUserData> {
+  async getUserDetails(
+    @Param('accountId') accountId: string,
+  ): Promise<IJiraUserData> {
     const userDetails = await this.jiraService.getUserDetails(accountId);
     return userDetails;
   }
@@ -69,7 +100,9 @@ export class JiraController {
   }
 
   @Delete('users/:accountId')
-  async deleteUser(@Param('accountId') accountId: string): Promise<IUserResponse> {
+  async deleteUser(
+    @Param('accountId') accountId: string,
+  ): Promise<IUserResponse> {
     return await this.jiraService.deleteUser(accountId);
   }
 

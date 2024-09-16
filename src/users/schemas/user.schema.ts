@@ -1,22 +1,49 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export type IssueCount = {
+export interface IssueCount {
   Task: number;
   Bug: number;
   Story: number;
-};
+}
 
-export type IssueHistoryEntry = {
+export interface IssueHistoryEntry {
   date: string;
   issuesCount: {
     notDone?: IssueCount;
     done?: IssueCount;
   };
-  taskCompletionRate?: Number;
-  userStoryCompletionRate?: Number;
-  overallScore?: Number;
-};
+  taskCompletionRate?: number;
+  userStoryCompletionRate?: number;
+  overallScore?: number;
+}
+
+export interface IUser {
+  accountId: string;
+  displayName: string;
+  emailAddress: string;
+  avatarUrls: string;
+  currentPerformance: number;
+  issueHistory: IssueHistoryEntry[];
+}
+
+
+// export type IssueCount = {
+//   Task: number;
+//   Bug: number;
+//   Story: number;
+// };
+
+// export type IssueHistoryEntry = {
+//   date: string;
+//   issuesCount: {
+//     notDone?: IssueCount;
+//     done?: IssueCount;
+//   };
+//   taskCompletionRate?: Number;
+//   userStoryCompletionRate?: Number;
+//   overallScore?: Number;
+// };
 
 @Schema()
 export class User extends Document {

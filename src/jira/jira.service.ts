@@ -8,7 +8,7 @@ import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User } from '../users/schemas/user.schema';
+import { IUser, User } from '../users/schemas/user.schema';
 import { Cron } from '@nestjs/schedule';
 
 dotenv.config();
@@ -24,13 +24,32 @@ interface IJiraUserData {
 interface IUserResponse {
   message: string;
   statusCode: number;
-  users?: User;
+  user?: IUser;
 }
 
 interface IGetAllUsersResponse {
   message: string;
   statusCode: number;
   users: IJiraUserData[];
+  totalPages: number;
+  currentPage: number;
+  totalUsers: number;
+}
+
+interface IJiraIssueData {
+  key: string;
+  fields: {
+    summary: string;
+    status: {
+      name: string;
+    };
+  };
+}
+
+interface IGetUserIssuesResponse {
+  message: string;
+  statusCode: number;
+  issues: IJiraIssueData[];
 }
 
 @Injectable()
@@ -47,6 +66,36 @@ export class JiraService {
     private readonly httpService: HttpService,
     @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {}
+
+
+  async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse> {
+    const apiUrl = `${this.jiraBaseUrl}/rest/api/3/search?jql=assignee=${accountId}`;
+
+    try {
+      const response = await this.httpService
+        .get(apiUrl, { headers: this.headers })
+        .toPromise();
+
+      const issues = response.data.issues;
+      if (!issues || issues.length === 0) {
+        throw new NotFoundException(`No issues found for user ${accountId}`);
+      }
+
+      return {
+        message: 'Issues fetched successfully',
+        statusCode: 200,
+        issues,
+      };
+    } catch (error) {
+      if (error.response && error.response.status === 400) {
+        throw new BadRequestException(`Invalid query or user ID`);
+      } else if (error.response && error.response.status === 404) {
+        throw new NotFoundException(`No issues found for user ${accountId}`);
+      } else {
+        throw new InternalServerErrorException('Error fetching issues from Jira');
+      }
+    }
+  }
 
   async getUserDetails(accountId: string): Promise<IJiraUserData> {
     const apiUrl = `${this.jiraBaseUrl}/rest/api/3/user?accountId=${accountId}`;
@@ -114,31 +163,51 @@ export class JiraService {
     }
   }
 
-  async getAllUsers(): Promise<IGetAllUsersResponse> {
+  async getAllUsers(
+    page: number = 1, 
+    limit: number = 10
+  ): Promise<IGetAllUsersResponse> {
     try {
+      const skip = (page - 1) * limit;
+  
+      // Fetch the total count of users
+      const totalUsers = await this.userModel.countDocuments();
+  
+      // Fetch the paginated users
       const users = await this.userModel
-        .find(
-          {},
-          'accountId displayName emailAddress avatarUrls currentPerformance',
-        )
+        .find({}, 'accountId displayName emailAddress avatarUrls currentPerformance')
+        .skip(skip)
+        .limit(limit)
         .exec();
-
-      return { message: 'Users found successfully', statusCode: 200, users };
+  
+      // Calculate total pages
+      const totalPages = Math.ceil(totalUsers / limit);
+  
+      // Return the users along with pagination info
+      return {
+        message: 'Users found successfully',
+        statusCode: 200,
+        users,
+        totalPages,
+        currentPage: page,
+        totalUsers,
+      };
     } catch (error) {
       throw new InternalServerErrorException(
         'Error fetching users from database',
       );
     }
   }
+  
 
   async getUser(accountId: string): Promise<IUserResponse> {
     try {
-      const users = await this.userModel.findOne({ accountId }).exec();
+      const user = await this.userModel.findOne({ accountId }).exec();
 
-      if (!users) {
+      if (!user) {
         throw new NotFoundException(`User not found`);
       }
-      return { message: 'User found successfully', statusCode: 200, users };
+      return { message: 'User found successfully', statusCode: 200, user };
     } catch (error) {
       throw new InternalServerErrorException(
         'Error fetching user from database',
