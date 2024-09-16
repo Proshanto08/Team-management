@@ -306,7 +306,7 @@ export class JiraService {
     }
   }
 
-  @Cron('37 08 * * *')
+  @Cron('42 08 * * *')
   async updateMorningIssueHistory() {
     console.log('Running updateMorningIssueHistory');
     try {
@@ -321,7 +321,7 @@ export class JiraService {
     }
   }
 
-  @Cron('39 08 * * *')
+  @Cron('44 08 * * *')
   async updateEveningIssueHistory() {
     console.log('Running updateEveningIssueHistory');
     try {
@@ -336,7 +336,7 @@ export class JiraService {
     }
   }
 
-  @Cron('40 08 * * *')
+  @Cron('44 08 * * *')
   async getAllUserMetrics() {
     try {
       // Fetch all users
