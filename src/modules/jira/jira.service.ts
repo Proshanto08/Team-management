@@ -106,38 +106,38 @@ export class JiraService {
     }
   }
 
-  async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
+  // async getUserIssues(accountId: string): Promise<IGetUserIssuesResponse[]> {
+  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId}`;
 
-    try {
-      const data = await this.fetchFromBothUrls(endpoint);
+  //   try {
+  //     const data = await this.fetchFromBothUrls(endpoint);
 
-      const transformIssues = (issues) =>
-        issues.map((issue) => ({
-          id: issue.id,
-          key: issue.key,
-          summary: issue.fields.summary,
-          status: issue.fields.status.name,
-          issueType: issue.fields.issuetype.name,
-          dueDate: issue.fields.duedate,
-        }));
+  //     const transformIssues = (issues) =>
+  //       issues.map((issue) => ({
+  //         id: issue.id,
+  //         key: issue.key,
+  //         summary: issue.fields.summary,
+  //         status: issue.fields.status.name,
+  //         issueType: issue.fields.issuetype.name,
+  //         dueDate: issue.fields.duedate,
+  //       }));
 
-      return [
-        {
-          message: 'Issues retrieved successfully from URL 1',
-          statusCode: 200,
-          issues: transformIssues(data.fromUrl1.issues),
-        },
-        {
-          message: 'Issues retrieved successfully from URL 2',
-          statusCode: 200,
-          issues: transformIssues(data.fromUrl2.issues),
-        },
-      ];
-    } catch (error) {
-      throw new InternalServerErrorException('Error fetching issues from Jira');
-    }
-  }
+  //     return [
+  //       {
+  //         message: 'Issues retrieved successfully from URL 1',
+  //         statusCode: 200,
+  //         issues: transformIssues(data.fromUrl1.issues),
+  //       },
+  //       {
+  //         message: 'Issues retrieved successfully from URL 2',
+  //         statusCode: 200,
+  //         issues: transformIssues(data.fromUrl2.issues),
+  //       },
+  //     ];
+  //   } catch (error) {
+  //     throw new InternalServerErrorException('Error fetching issues from Jira');
+  //   }
+  // }
 
   async fetchAndSaveUser(
     accountId: string,
@@ -698,44 +698,44 @@ export class JiraService {
   }
 
   @Cron('33 00 * * *')
-  async getAllUserMetrics() {
+  async getAllUserMetrics(): Promise<void> { // Set return type to void
     console.log('Running metrics');
     try {
       // Fetch all users
       const users = await this.userModel.find({}).exec();
-
+  
       // Process each user to calculate metrics
-      const updatedUsers = await Promise.all(
+      await Promise.all(
         users.map(async (user) => {
           const issueHistory = user.issueHistory;
-
+  
           // Aggregate counts by date and calculate metrics
           const metricsByDay = await Promise.all(
             issueHistory.map(async (entry) => {
               const { date, issuesCount, notDoneIssues, doneIssues } = entry;
               const counts = issuesCount;
-
+  
               let taskCompletionRate = 0;
               let userStoryCompletionRate = 0;
               let overallScore = 0;
               let comment = '';
-
+  
               const totalNotDoneTasksAndBugs =
                 counts.notDone.Task + counts.notDone.Bug;
               const totalDoneTasksAndBugs = counts.done.Task + counts.done.Bug;
-
+  
               // Calculate task completion rate only if there are tasks or bugs
               if (totalNotDoneTasksAndBugs > 0) {
                 taskCompletionRate =
                   (totalDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
               }
-
+  
               // Calculate user story completion rate only if there are user stories
               if (counts.notDone.Story > 0) {
                 userStoryCompletionRate =
                   (counts.done.Story / counts.notDone.Story) * 100;
               }
-
+  
               // Check if the number of done tasks is greater than not-done
               if (
                 totalDoneTasksAndBugs + counts.done.Story >
@@ -745,23 +745,23 @@ export class JiraService {
                 userStoryCompletionRate = 100;
                 comment = `Your target was ${totalNotDoneTasksAndBugs + counts.notDone.Story}, but you completed ${totalDoneTasksAndBugs + counts.done.Story}.`;
               }
-
+  
               // Check if task IDs in notDoneIssues match with those in doneIssues
               const notDoneIssueIds = notDoneIssues.map(
                 (issue) => issue.issueId,
               );
               const doneIssueIds = doneIssues.map((issue) => issue.issueId);
-
+  
               // Find tasks in `doneIssues` that do not match any in `notDoneIssues`
               const unmatchedDoneIssueIds = doneIssueIds.filter(
                 (doneId) => !notDoneIssueIds.includes(doneId),
               );
-
+  
               // Check if there are unmatched done tasks
               if (unmatchedDoneIssueIds.length > 0) {
                 comment += ` ${unmatchedDoneIssueIds.length} task(s) that you completed do not match with your targeted task(s).`;
               }
-
+  
               // Calculate overall score based on available metrics
               const nonZeroCompletionRates = [];
               if (totalNotDoneTasksAndBugs > 0) {
@@ -770,14 +770,14 @@ export class JiraService {
               if (counts.notDone.Story > 0) {
                 nonZeroCompletionRates.push(userStoryCompletionRate);
               }
-
+  
               // If there are non-zero completion rates, calculate the average
               if (nonZeroCompletionRates.length > 0) {
                 overallScore =
                   nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
                   nonZeroCompletionRates.length;
               }
-
+  
               // Ensure rates are valid numbers
               const taskCompletionRateNum = isNaN(taskCompletionRate)
                 ? 0
@@ -786,28 +786,17 @@ export class JiraService {
                 ? 0
                 : userStoryCompletionRate;
               const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
-
+  
               // Update entry with the calculated metrics
               entry.taskCompletionRate = taskCompletionRateNum;
               entry.userStoryCompletionRate = userStoryCompletionRateNum;
               entry.overallScore = overallScoreNum;
               entry.comment = comment;
-
-              return {
-                date,
-                numberOfTasks: counts.notDone.Task,
-                numberOfBugs: counts.notDone.Bug,
-                numberOfUserStories: counts.notDone.Story,
-                completedTasks: totalDoneTasksAndBugs,
-                completedUserStories: counts.done.Story,
-                taskCompletionRate: taskCompletionRateNum,
-                userStoryCompletionRate: userStoryCompletionRateNum,
-                overallScore: overallScoreNum,
-                comment,
-              };
+  
+              return entry; // return updated entry (optional)
             }),
           );
-
+  
           // Calculate current performance by averaging overall scores
           const totalScore = metricsByDay.reduce(
             (sum, day) => sum + day.overallScore,
@@ -816,21 +805,14 @@ export class JiraService {
           const currentPerformance = metricsByDay.length
             ? totalScore / metricsByDay.length
             : 0;
-
+  
           user.currentPerformance = currentPerformance;
           user.issueHistory = issueHistory;
           await user.save();
-
-          return user;
         }),
       );
-
-      return {
-        message: 'User metrics calculated successfully',
-        users: updatedUsers,
-      };
     } catch (error) {
-      throw new error();
+      throw new Error(`Failed to calculate user metrics: ${error.message}`);
     }
-  }
+  }  
 }
