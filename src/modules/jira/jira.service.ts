@@ -411,9 +411,9 @@ export class JiraService {
         throw new InternalServerErrorException('User not found');
       }
 
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === date,
-      );
+      const existingHistory = user.issueHistory.find((history) => {
+        return history.date === date;
+      });
 
       if (existingHistory) {
         // Update existing history
@@ -573,11 +573,12 @@ export class JiraService {
 
           // Check for linked bugs in issue links
           const issueLinks = issue.fields.issuelinks || [];
-          const linkedBugs = issueLinks.filter(
-            (link) =>
+          const linkedBugs = issueLinks.filter((link) => {
+            return (
               link.outwardIssue?.fields.issuetype.name === 'Bug' ||
-              link.inwardIssue?.fields.issuetype.name === 'Bug',
-          ).length;
+              link.inwardIssue?.fields.issuetype.name === 'Bug'
+            );
+          }).length;
 
           countsByDate[dueDate].LinkedBugs += linkedBugs;
 
@@ -593,16 +594,18 @@ export class JiraService {
 
       // Save the results by date and calculate the bug-to-task/story ratio
       for (const [date, counts] of Object.entries(countsByDate)) {
-        const tasksWithLinkedBugs = doneIssues.filter(
-          (issue) =>
+        const tasksWithLinkedBugs = doneIssues.filter((issue) => {
+          return (
             (issue.fields.issuetype.name === 'Task' ||
               issue.fields.issuetype.name === 'Story') &&
-            issue.fields.issuelinks.some(
-              (link) =>
+            issue.fields.issuelinks.some((link) => {
+              return (
                 link.outwardIssue?.fields.issuetype.name === 'Bug' ||
-                link.inwardIssue?.fields.issuetype.name === 'Bug',
-            ),
-        );
+                link.inwardIssue?.fields.issuetype.name === 'Bug'
+              );
+            })
+          );
+        });
 
         const taskAndStoryCount = tasksWithLinkedBugs.length;
         const linkedBugsCount = counts.LinkedBugs;
