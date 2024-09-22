@@ -11,20 +11,12 @@ import { JiraService } from './jira.service';
 import {
   IJiraUserData,
   IUserResponse,
-  IGetUserIssuesResponse,
-} from '../../interfaces/jira.interfaces';
+} from '../../interfaces/jira.interfaces'; // Removed IGetUserIssuesResponse
 import { Designation } from '../users/schemas/user.schema';
 
 @Controller('jira')
 export class JiraController {
   constructor(private readonly jiraService: JiraService) {}
-
-  // @Get(':accountId/issues')
-  // async getUserIssues(
-  //   @Param('accountId') accountId: string,
-  // ): Promise<IGetUserIssuesResponse[]> {
-  //   return this.jiraService.getUserIssues(accountId);
-  // }
 
   @Get(':accountId')
   async getUserDetails(
@@ -95,7 +87,7 @@ export class JiraController {
   }
 
   @Put('metrics')
-  async getUserMetrics() {
-    return await this.jiraService.getAllUserMetrics();
+  async getUserMetrics(): Promise<void> { // Added return type
+    await this.jiraService.getAllUserMetrics(); // Removed return statement
   }
 }

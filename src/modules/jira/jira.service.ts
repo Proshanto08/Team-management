@@ -10,11 +10,7 @@ import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Designation, IIssue, User } from '../users/schemas/user.schema';
-import {
-  IJiraUserData,
-  IUserResponse,
-  IGetUserIssuesResponse,
-} from '../../interfaces/jira.interfaces';
+import { IJiraUserData, IUserResponse } from '../../interfaces/jira.interfaces';
 import { UserService } from '../users/users.service';
 import { Cron } from '@nestjs/schedule';
 
@@ -37,7 +33,9 @@ export class JiraService {
     @InjectModel(User.name) private readonly userModel: Model<User>,
   ) {}
 
-  private async fetchFromBothUrls(endpoint: string) {
+  private async fetchFromBothUrls(
+    endpoint: string,
+  ): Promise<{ fromUrl1: any; fromUrl2: any }> {
     const url1 = `${this.jiraBaseUrl}${endpoint}`;
     const url2 = `${this.jiraBaseUrl2}${endpoint}`;
 
@@ -698,44 +696,45 @@ export class JiraService {
   }
 
   @Cron('33 00 * * *')
-  async getAllUserMetrics(): Promise<void> { // Set return type to void
+  async getAllUserMetrics(): Promise<void> {
+    // Set return type to void
     console.log('Running metrics');
     try {
       // Fetch all users
       const users = await this.userModel.find({}).exec();
-  
+
       // Process each user to calculate metrics
       await Promise.all(
         users.map(async (user) => {
           const issueHistory = user.issueHistory;
-  
+
           // Aggregate counts by date and calculate metrics
           const metricsByDay = await Promise.all(
             issueHistory.map(async (entry) => {
-              const { date, issuesCount, notDoneIssues, doneIssues } = entry;
+              const { issuesCount, notDoneIssues, doneIssues } = entry;
               const counts = issuesCount;
-  
+
               let taskCompletionRate = 0;
               let userStoryCompletionRate = 0;
               let overallScore = 0;
               let comment = '';
-  
+
               const totalNotDoneTasksAndBugs =
                 counts.notDone.Task + counts.notDone.Bug;
               const totalDoneTasksAndBugs = counts.done.Task + counts.done.Bug;
-  
+
               // Calculate task completion rate only if there are tasks or bugs
               if (totalNotDoneTasksAndBugs > 0) {
                 taskCompletionRate =
                   (totalDoneTasksAndBugs / totalNotDoneTasksAndBugs) * 100;
               }
-  
+
               // Calculate user story completion rate only if there are user stories
               if (counts.notDone.Story > 0) {
                 userStoryCompletionRate =
                   (counts.done.Story / counts.notDone.Story) * 100;
               }
-  
+
               // Check if the number of done tasks is greater than not-done
               if (
                 totalDoneTasksAndBugs + counts.done.Story >
@@ -745,23 +744,23 @@ export class JiraService {
                 userStoryCompletionRate = 100;
                 comment = `Your target was ${totalNotDoneTasksAndBugs + counts.notDone.Story}, but you completed ${totalDoneTasksAndBugs + counts.done.Story}.`;
               }
-  
+
               // Check if task IDs in notDoneIssues match with those in doneIssues
               const notDoneIssueIds = notDoneIssues.map(
                 (issue) => issue.issueId,
               );
               const doneIssueIds = doneIssues.map((issue) => issue.issueId);
-  
+
               // Find tasks in `doneIssues` that do not match any in `notDoneIssues`
               const unmatchedDoneIssueIds = doneIssueIds.filter(
                 (doneId) => !notDoneIssueIds.includes(doneId),
               );
-  
+
               // Check if there are unmatched done tasks
               if (unmatchedDoneIssueIds.length > 0) {
                 comment += ` ${unmatchedDoneIssueIds.length} task(s) that you completed do not match with your targeted task(s).`;
               }
-  
+
               // Calculate overall score based on available metrics
               const nonZeroCompletionRates = [];
               if (totalNotDoneTasksAndBugs > 0) {
@@ -770,14 +769,14 @@ export class JiraService {
               if (counts.notDone.Story > 0) {
                 nonZeroCompletionRates.push(userStoryCompletionRate);
               }
-  
+
               // If there are non-zero completion rates, calculate the average
               if (nonZeroCompletionRates.length > 0) {
                 overallScore =
                   nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
                   nonZeroCompletionRates.length;
               }
-  
+
               // Ensure rates are valid numbers
               const taskCompletionRateNum = isNaN(taskCompletionRate)
                 ? 0
@@ -786,17 +785,17 @@ export class JiraService {
                 ? 0
                 : userStoryCompletionRate;
               const overallScoreNum = isNaN(overallScore) ? 0 : overallScore;
-  
+
               // Update entry with the calculated metrics
               entry.taskCompletionRate = taskCompletionRateNum;
               entry.userStoryCompletionRate = userStoryCompletionRateNum;
               entry.overallScore = overallScoreNum;
               entry.comment = comment;
-  
+
               return entry; // return updated entry (optional)
             }),
           );
-  
+
           // Calculate current performance by averaging overall scores
           const totalScore = metricsByDay.reduce(
             (sum, day) => sum + day.overallScore,
@@ -805,7 +804,7 @@ export class JiraService {
           const currentPerformance = metricsByDay.length
             ? totalScore / metricsByDay.length
             : 0;
-  
+
           user.currentPerformance = currentPerformance;
           user.issueHistory = issueHistory;
           await user.save();
@@ -814,5 +813,5 @@ export class JiraService {
     } catch (error) {
       throw new Error(`Failed to calculate user metrics: ${error.message}`);
     }
-  }  
+  }
 }
