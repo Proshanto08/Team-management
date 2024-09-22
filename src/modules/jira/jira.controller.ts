@@ -8,10 +8,7 @@ import {
   Put,
 } from '@nestjs/common';
 import { JiraService } from './jira.service';
-import {
-  IJiraUserData,
-  IUserResponse,
-} from '../../interfaces/jira.interfaces'; // Removed IGetUserIssuesResponse
+import { IJiraUserData, IUserResponse } from '../../interfaces/jira.interfaces';
 import { Designation } from '../users/schemas/user.schema';
 
 @Controller('jira')
@@ -87,7 +84,7 @@ export class JiraController {
   }
 
   @Put('metrics')
-  async getUserMetrics(): Promise<void> { // Added return type
-    await this.jiraService.getAllUserMetrics(); // Removed return statement
+  async getUserMetrics(): Promise<void> {
+    await this.jiraService.getAllUserMetrics();
   }
 }
