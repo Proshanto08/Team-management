@@ -20,7 +20,7 @@ jobs:
       run: npm install
 
     - name: Run Test & Coverage
-      run: npm run test
+      run: npm run test:cov
 
     - name: Run codacy-coverage-reporter
       uses: codacy/codacy-coverage-reporter-action@v1
