@@ -374,9 +374,9 @@ export class JiraService {
         throw new InternalServerErrorException('User not found');
       }
 
-      const existingHistory = user.issueHistory.find(
-        (history) => history.date === date,
-      );
+      const existingHistory = user.issueHistory.find((history) => {
+        return history.date === date;
+      });
 
       if (existingHistory) {
         existingHistory.issuesCount.notDone = counts;
@@ -746,15 +746,17 @@ export class JiraService {
               }
 
               // Check if task IDs in notDoneIssues match with those in doneIssues
-              const notDoneIssueIds = notDoneIssues.map(
-                (issue) => issue.issueId,
-              );
-              const doneIssueIds = doneIssues.map((issue) => issue.issueId);
+              const notDoneIssueIds = notDoneIssues.map((issue) => {
+                return issue.issueId;
+              });
+              const doneIssueIds = doneIssues.map((issue) => {
+                return issue.issueId;
+              });
 
               // Find tasks in `doneIssues` that do not match any in `notDoneIssues`
-              const unmatchedDoneIssueIds = doneIssueIds.filter(
-                (doneId) => !notDoneIssueIds.includes(doneId),
-              );
+              const unmatchedDoneIssueIds = doneIssueIds.filter((doneId) => {
+                return !notDoneIssueIds.includes(doneId);
+              });
 
               // Check if there are unmatched done tasks
               if (unmatchedDoneIssueIds.length > 0) {
@@ -773,8 +775,9 @@ export class JiraService {
               // If there are non-zero completion rates, calculate the average
               if (nonZeroCompletionRates.length > 0) {
                 overallScore =
-                  nonZeroCompletionRates.reduce((sum, rate) => sum + rate, 0) /
-                  nonZeroCompletionRates.length;
+                  nonZeroCompletionRates.reduce((sum, rate) => {
+                    return sum + rate;
+                  }, 0) / nonZeroCompletionRates.length;
               }
 
               // Ensure rates are valid numbers
@@ -797,10 +800,9 @@ export class JiraService {
           );
 
           // Calculate current performance by averaging overall scores
-          const totalScore = metricsByDay.reduce(
-            (sum, day) => sum + day.overallScore,
-            0,
-          );
+          const totalScore = metricsByDay.reduce((sum, day) => {
+            return sum + day.overallScore;
+          }, 0);
           const currentPerformance = metricsByDay.length
             ? totalScore / metricsByDay.length
             : 0;
