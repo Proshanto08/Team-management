@@ -5,9 +5,12 @@ import { JiraController } from './jira.controller';
 import { UserModule } from '../users/users.module';
 
 @Module({
-  imports: [HttpModule, forwardRef(() => {
-    return UserModule;
-  })],
+  imports: [
+    HttpModule,
+    forwardRef(() => {
+      return UserModule;
+    }),
+  ],
   providers: [JiraService],
   controllers: [JiraController],
   exports: [JiraService],
