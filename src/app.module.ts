@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { UserModule } from './users/users.module';
-import { JiraModule } from './jira/jira.module';
+import { UserModule } from './modules/users/users.module';
+import { JiraModule } from './modules/jira/jira.module';
 import * as dotenv from 'dotenv';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AppController } from './app.controller';
 
 dotenv.config();
 
@@ -24,5 +25,6 @@ dotenv.config();
     UserModule,
     JiraModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
