@@ -179,187 +179,187 @@ export class JiraService {
     }
   }
 
-  async countNotDoneIssues(accountId: string): Promise<void> {
-    const date30DaysAgo = new Date();
-    date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
-    const formattedStartDate = date30DaysAgo.toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
+  // async countNotDoneIssues(accountId: string): Promise<void> {
+  //   const date30DaysAgo = new Date();
+  //   date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
+  //   const formattedStartDate = date30DaysAgo.toLocaleDateString('en-CA', {
+  //     timeZone: 'Asia/Dhaka',
+  //   });
 
-    const today = new Date().toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
+  //   const today = new Date().toLocaleDateString('en-CA', {
+  //     timeZone: 'Asia/Dhaka',
+  //   });
 
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
+  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status!=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
 
-    try {
-      // Fetch issues from both Jira URLs in parallel
-      const [response1, response2] = await Promise.all([
-        this.httpService
-          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
-          .toPromise(),
-        this.httpService
-          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
-          .toPromise(),
-      ]);
+  //   try {
+  //     // Fetch issues from both Jira URLs in parallel
+  //     const [response1, response2] = await Promise.all([
+  //       this.httpService
+  //         .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
+  //         .toPromise(),
+  //       this.httpService
+  //         .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
+  //         .toPromise(),
+  //     ]);
 
-      // Combine issues from both responses
-      const notDoneIssues = [
-        ...response1.data.issues,
-        ...response2.data.issues,
-      ];
+  //     // Combine issues from both responses
+  //     const notDoneIssues = [
+  //       ...response1.data.issues,
+  //       ...response2.data.issues,
+  //     ];
 
-      const countsByDate: {
-        [key: string]: { Task: number; Bug: number; Story: number };
-      } = {};
-      const issuesByDate: { [key: string]: IIssue[] } = {};
+  //     const countsByDate: {
+  //       [key: string]: { Task: number; Bug: number; Story: number };
+  //     } = {};
+  //     const issuesByDate: { [key: string]: IIssue[] } = {};
 
-      notDoneIssues.forEach((issue) => {
-        const dueDate = issue.fields.duedate?.split('T')[0];
-        const issueType = issue.fields.issuetype.name;
-        const issueId = issue.id;
-        const summary = issue.fields.summary;
-        const status = issue.fields.status.name;
-        const dueDateFormatted = issue.fields.duedate || null;
+  //     notDoneIssues.forEach((issue) => {
+  //       const dueDate = issue.fields.duedate?.split('T')[0];
+  //       const issueType = issue.fields.issuetype.name;
+  //       const issueId = issue.id;
+  //       const summary = issue.fields.summary;
+  //       const status = issue.fields.status.name;
+  //       const dueDateFormatted = issue.fields.duedate || null;
 
-        if (dueDate) {
-          if (!countsByDate[dueDate]) {
-            countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
-            issuesByDate[dueDate] = [];
-          }
+  //       if (dueDate) {
+  //         if (!countsByDate[dueDate]) {
+  //           countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
+  //           issuesByDate[dueDate] = [];
+  //         }
 
-          if (issueType === 'Task') {
-            countsByDate[dueDate].Task++;
-          } else if (issueType === 'Bug') {
-            countsByDate[dueDate].Bug++;
-          } else if (issueType === 'Story') {
-            countsByDate[dueDate].Story++;
-          }
+  //         if (issueType === 'Task') {
+  //           countsByDate[dueDate].Task++;
+  //         } else if (issueType === 'Bug') {
+  //           countsByDate[dueDate].Bug++;
+  //         } else if (issueType === 'Story') {
+  //           countsByDate[dueDate].Story++;
+  //         }
 
-          issuesByDate[dueDate].push({
-            issueId,
-            summary,
-            status,
-            issueType,
-            dueDate: dueDateFormatted,
-          });
-        }
-      });
+  //         issuesByDate[dueDate].push({
+  //           issueId,
+  //           summary,
+  //           status,
+  //           issueType,
+  //           dueDate: dueDateFormatted,
+  //         });
+  //       }
+  //     });
 
-      // Save the results by date
-      for (const [date, counts] of Object.entries(countsByDate)) {
-        await this.saveNotDoneIssueCounts(
-          accountId,
-          date,
-          counts,
-          issuesByDate[date],
-        );
-      }
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error fetching not-done issues from Jira',
-      );
-    }
-  }
+  //     // Save the results by date
+  //     for (const [date, counts] of Object.entries(countsByDate)) {
+  //       await this.saveNotDoneIssueCounts(
+  //         accountId,
+  //         date,
+  //         counts,
+  //         issuesByDate[date],
+  //       );
+  //     }
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(
+  //       'Error fetching not-done issues from Jira',
+  //     );
+  //   }
+  // }
 
-  async countDoneIssues(accountId: string): Promise<void> {
-    const date30DaysAgo = new Date();
-    date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
-    const formattedStartDate = date30DaysAgo.toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
+  // async countDoneIssues(accountId: string): Promise<void> {
+  //   const date30DaysAgo = new Date();
+  //   date30DaysAgo.setDate(date30DaysAgo.getDate() - 30);
+  //   const formattedStartDate = date30DaysAgo.toLocaleDateString('en-CA', {
+  //     timeZone: 'Asia/Dhaka',
+  //   });
 
-    const today = new Date().toLocaleDateString('en-CA', {
-      timeZone: 'Asia/Dhaka',
-    });
+  //   const today = new Date().toLocaleDateString('en-CA', {
+  //     timeZone: 'Asia/Dhaka',
+  //   });
 
-    const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
+  //   const endpoint = `/rest/api/3/search?jql=assignee=${accountId} AND status=Done AND duedate>=${formattedStartDate} AND duedate<=${today}`;
 
-    try {
-      const [response1, response2] = await Promise.all([
-        this.httpService
-          .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
-          .toPromise(),
-        this.httpService
-          .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
-          .toPromise(),
-      ]);
+  //   try {
+  //     const [response1, response2] = await Promise.all([
+  //       this.httpService
+  //         .get(`${this.jiraBaseUrl}${endpoint}`, { headers: this.headers })
+  //         .toPromise(),
+  //       this.httpService
+  //         .get(`${this.jiraBaseUrl2}${endpoint}`, { headers: this.headers })
+  //         .toPromise(),
+  //     ]);
 
-      const doneIssues = [...response1.data.issues, ...response2.data.issues];
+  //     const doneIssues = [...response1.data.issues, ...response2.data.issues];
 
-      const countsByDate: {
-        [key: string]: { Task: number; Bug: number; Story: number };
-      } = {};
-      const issuesByDate: { [key: string]: IIssue[] } = {};
-      const bugLinksByDate: { [key: string]: number } = {}; // Store bug links
+  //     const countsByDate: {
+  //       [key: string]: { Task: number; Bug: number; Story: number };
+  //     } = {};
+  //     const issuesByDate: { [key: string]: IIssue[] } = {};
+  //     const bugLinksByDate: { [key: string]: number } = {}; // Store bug links
 
-      doneIssues.forEach((issue) => {
-        const dueDate = issue.fields.duedate?.split('T')[0];
-        const issueType = issue.fields.issuetype.name;
-        const issueId = issue.id;
-        const summary = issue.fields.summary;
-        const status = issue.fields.status.name;
-        const dueDateFormatted = issue.fields.duedate || null;
-        const issueLinks = issue.fields.issuelinks || []; // Check for issue links
+  //     doneIssues.forEach((issue) => {
+  //       const dueDate = issue.fields.duedate?.split('T')[0];
+  //       const issueType = issue.fields.issuetype.name;
+  //       const issueId = issue.id;
+  //       const summary = issue.fields.summary;
+  //       const status = issue.fields.status.name;
+  //       const dueDateFormatted = issue.fields.duedate || null;
+  //       const issueLinks = issue.fields.issuelinks || []; // Check for issue links
 
-        if (dueDate) {
-          if (!countsByDate[dueDate]) {
-            countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
-            issuesByDate[dueDate] = [];
-            bugLinksByDate[dueDate] = 0; // Initialize bug link counter
-          }
+  //       if (dueDate) {
+  //         if (!countsByDate[dueDate]) {
+  //           countsByDate[dueDate] = { Task: 0, Bug: 0, Story: 0 };
+  //           issuesByDate[dueDate] = [];
+  //           bugLinksByDate[dueDate] = 0; // Initialize bug link counter
+  //         }
 
-          // Count issue types
-          if (issueType === 'Task') {
-            countsByDate[dueDate].Task++;
-          } else if (issueType === 'Bug') {
-            countsByDate[dueDate].Bug++;
-          } else if (issueType === 'Story') {
-            countsByDate[dueDate].Story++;
-          }
+  //         // Count issue types
+  //         if (issueType === 'Task') {
+  //           countsByDate[dueDate].Task++;
+  //         } else if (issueType === 'Bug') {
+  //           countsByDate[dueDate].Bug++;
+  //         } else if (issueType === 'Story') {
+  //           countsByDate[dueDate].Story++;
+  //         }
 
-          // Track linked bugs
-          issueLinks.forEach((link) => {
-            if (
-              link.type.name === 'Blocks' &&
-              link.outwardIssue.fields.issuetype.name === 'Bug'
-            ) {
-              bugLinksByDate[dueDate]++; // Count linked bugs
-            }
-          });
+  //         // Track linked bugs
+  //         issueLinks.forEach((link) => {
+  //           if (
+  //             link.type.name === 'Blocks' &&
+  //             link.outwardIssue.fields.issuetype.name === 'Bug'
+  //           ) {
+  //             bugLinksByDate[dueDate]++; // Count linked bugs
+  //           }
+  //         });
 
-          issuesByDate[dueDate].push({
-            issueId,
-            summary,
-            status,
-            issueType,
-            dueDate: dueDateFormatted,
-          });
-        }
-      });
+  //         issuesByDate[dueDate].push({
+  //           issueId,
+  //           summary,
+  //           status,
+  //           issueType,
+  //           dueDate: dueDateFormatted,
+  //         });
+  //       }
+  //     });
 
-      // Save the results by date
-      for (const [date, counts] of Object.entries(countsByDate)) {
-        const totalTasksAndStories = counts.Task + counts.Story;
-        const codeToBugRatio =
-          totalTasksAndStories > 0
-            ? bugLinksByDate[date] / totalTasksAndStories
-            : 0;
+  //     // Save the results by date
+  //     for (const [date, counts] of Object.entries(countsByDate)) {
+  //       const totalTasksAndStories = counts.Task + counts.Story;
+  //       const codeToBugRatio =
+  //         totalTasksAndStories > 0
+  //           ? bugLinksByDate[date] / totalTasksAndStories
+  //           : 0;
 
-        await this.saveDoneIssueCounts(
-          accountId,
-          date,
-          counts,
-          issuesByDate[date],
-          codeToBugRatio, // Save the calculated code-to-bug ratio
-        );
-      }
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error fetching done issues from Jira',
-      );
-    }
-  }
+  //       await this.saveDoneIssueCounts(
+  //         accountId,
+  //         date,
+  //         counts,
+  //         issuesByDate[date],
+  //         codeToBugRatio, // Save the calculated code-to-bug ratio
+  //       );
+  //     }
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(
+  //       'Error fetching done issues from Jira',
+  //     );
+  //   }
+  // }
 
   async saveNotDoneIssueCounts(
     accountId: string,
@@ -635,20 +635,20 @@ export class JiraService {
     }
   }
 
-  @Cron('53 23 * * *')
-  async updateMorningIssueHistoryFor30days(): Promise<void> {
-    console.log('Running updateMorningIssueHistory');
-    try {
-      const users = await this.userModel.find().exec();
-      for (const user of users) {
-        await this.countNotDoneIssues(user.accountId);
-      }
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating issue history for all users in the morning',
-      );
-    }
-  }
+  // @Cron('53 23 * * *')
+  // async updateMorningIssueHistoryFor30days(): Promise<void> {
+  //   console.log('Running updateMorningIssueHistory');
+  //   try {
+  //     const users = await this.userModel.find().exec();
+  //     for (const user of users) {
+  //       await this.countNotDoneIssues(user.accountId);
+  //     }
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(
+  //       'Error updating issue history for all users in the morning',
+  //     );
+  //   }
+  // }
 
   @Cron('46 23 * * *')
   async updateMorningIssueHistory(): Promise<void> {
@@ -665,20 +665,20 @@ export class JiraService {
     }
   }
 
-  @Cron('28 15 * * *')
-  async updateEveningIssueHistoryFor30days(): Promise<void> {
-    console.log('Running updateEveningIssueHistory');
-    try {
-      const users = await this.userModel.find().exec();
-      for (const user of users) {
-        await this.countDoneIssues(user.accountId);
-      }
-    } catch (error) {
-      throw new InternalServerErrorException(
-        'Error updating issue history for all users in the evening',
-      );
-    }
-  }
+  // @Cron('28 15 * * *')
+  // async updateEveningIssueHistoryFor30days(): Promise<void> {
+  //   console.log('Running updateEveningIssueHistory');
+  //   try {
+  //     const users = await this.userModel.find().exec();
+  //     for (const user of users) {
+  //       await this.countDoneIssues(user.accountId);
+  //     }
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(
+  //       'Error updating issue history for all users in the evening',
+  //     );
+  //   }
+  // }
 
   @Cron('32 00 * * *')
   async updateEveningIssueHistory(): Promise<void> {
