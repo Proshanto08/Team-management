@@ -20,8 +20,8 @@ export class UserController {
 
   @Get()
   async getAllUsers(
-    @Query('page') page = '1', // Removed type annotation
-    @Query('limit') limit = '10', // Removed type annotation
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
   ): Promise<IGetAllUsersResponse> {
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -32,8 +32,8 @@ export class UserController {
   @Get(':accountId')
   async getUser(
     @Param('accountId') accountId: string,
-    @Query('page') page = 1, // Removed type annotation
-    @Query('limit') limit = 10, // Removed type annotation
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
   ): Promise<IUserResponse> {
     return this.userService.getUser(accountId, page, limit);
   }
