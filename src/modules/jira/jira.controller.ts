@@ -8,7 +8,6 @@ import {
   Put,
 } from '@nestjs/common';
 import { JiraService } from './jira.service';
-
 import {
   IJiraUserData,
   IUserResponse,
@@ -31,8 +30,7 @@ export class JiraController {
   async getUserDetails(
     @Param('accountId') accountId: string,
   ): Promise<IJiraUserData> {
-    const userDetails = await this.jiraService.getUserDetails(accountId);
-    return userDetails;
+    return await this.jiraService.getUserDetails(accountId);
   }
 
   @Post('users/create')
@@ -55,13 +53,11 @@ export class JiraController {
     @Param('accountId') accountId: string,
   ): Promise<void> {
     await this.jiraService.countNotDoneIssues(accountId);
-    return;
   }
 
   @Put(':accountId/issues/done-month')
   async countDoneIssues(@Param('accountId') accountId: string): Promise<void> {
     await this.jiraService.countDoneIssues(accountId);
-    return;
   }
 
   @Put(':accountId/issues/not-done-today')
@@ -69,7 +65,6 @@ export class JiraController {
     @Param('accountId') accountId: string,
   ): Promise<void> {
     await this.jiraService.countNotDoneIssuesForToday(accountId);
-    return;
   }
 
   @Put(':accountId/issues/done-today')
@@ -77,36 +72,30 @@ export class JiraController {
     @Param('accountId') accountId: string,
   ): Promise<void> {
     await this.jiraService.countDoneIssuesForToday(accountId);
-    return;
   }
 
   @Put('update-morning-issue-history')
   async updateMorningIssueHistory(): Promise<void> {
     await this.jiraService.updateMorningIssueHistory();
-    return;
   }
 
   @Put('update-evening-issue-history')
   async updateEveningIssueHistory(): Promise<void> {
     await this.jiraService.updateEveningIssueHistory();
-    return;
   }
 
   @Put('update-morning-issue-history-30days')
   async updateMorningIssueHistoryFor30days(): Promise<void> {
     await this.jiraService.updateMorningIssueHistoryFor30days();
-    return;
   }
 
   @Put('update-evening-issue-history-30days')
   async updateEveningIssueHistoryFor30days(): Promise<void> {
     await this.jiraService.updateEveningIssueHistoryFor30days();
-    return;
   }
 
   @Put('metrics')
   async getUserMetrics() {
-    await this.jiraService.getAllUserMetrics();
-    return;
+    return await this.jiraService.getAllUserMetrics();
   }
 }

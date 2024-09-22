@@ -8,7 +8,9 @@ import { UserController } from './users.controller';
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
-    forwardRef(() => JiraModule),
+    forwardRef(() => {
+      return JiraModule; // Wrapped in a block statement
+    }),
   ],
   providers: [UserService],
   controllers: [UserController],

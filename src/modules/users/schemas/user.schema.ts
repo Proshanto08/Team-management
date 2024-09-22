@@ -9,13 +9,13 @@ export enum Designation {
   Designer = 'Designer',
 }
 
-export interface IssueCount {
+export interface IIssueCount {
   Task: number;
   Bug: number;
   Story: number;
 }
 
-export interface Issue {
+export interface IIssue {
   issueId: string;
   summary: string;
   status: string;
@@ -23,18 +23,18 @@ export interface Issue {
   dueDate: string;
 }
 
-export interface IssueHistoryEntry {
+export interface IIssueHistoryEntry {
   date: string;
   issuesCount: {
-    notDone?: IssueCount;
-    done?: IssueCount;
+    notDone?: IIssueCount;
+    done?: IIssueCount;
   };
   taskCompletionRate?: number;
   userStoryCompletionRate?: number;
   overallScore?: number;
   comment?: string;
-  notDoneIssues?: Issue[];
-  doneIssues?: Issue[];
+  notDoneIssues?: IIssue[];
+  doneIssues?: IIssue[];
   codeToBugRatio?: number;
 }
 
@@ -44,7 +44,7 @@ export interface IUser {
   emailAddress: string;
   avatarUrls: string;
   currentPerformance: number;
-  issueHistory: IssueHistoryEntry[];
+  issueHistory: IIssueHistoryEntry[];
   designation: Designation;
   isArchive: boolean;
   createdAt?: Date;
@@ -108,7 +108,7 @@ export class User extends Document {
     ],
     default: [],
   })
-  issueHistory: IssueHistoryEntry[];
+  issueHistory: IIssueHistoryEntry[];
 
   @Prop({ type: Number, default: 0 })
   currentPerformance: number;

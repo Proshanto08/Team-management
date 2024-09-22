@@ -4,7 +4,6 @@ import {
   Param,
   Delete,
   Query,
-  Post,
   BadRequestException,
   Put,
 } from '@nestjs/common';
@@ -21,8 +20,8 @@ export class UserController {
 
   @Get()
   async getAllUsers(
-    @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('page') page = '1', // Removed type annotation
+    @Query('limit') limit = '10', // Removed type annotation
   ): Promise<IGetAllUsersResponse> {
     const pageNumber = parseInt(page, 10) || 1;
     const limitNumber = parseInt(limit, 10) || 10;
@@ -33,8 +32,8 @@ export class UserController {
   @Get(':accountId')
   async getUser(
     @Param('accountId') accountId: string,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
+    @Query('page') page = 1, // Removed type annotation
+    @Query('limit') limit = 10, // Removed type annotation
   ): Promise<IUserResponse> {
     return this.userService.getUser(accountId, page, limit);
   }

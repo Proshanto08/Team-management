@@ -48,15 +48,15 @@ export class UserService {
           message: 'User already exists',
           statusCode: 409,
         };
-      } else {
-        const newUser = new this.userModel(userToSave);
-        await newUser.save();
-        return {
-          message: 'User saved successfully',
-          statusCode: 201,
-          user: newUser,
-        };
       }
+
+      const newUser = new this.userModel(userToSave);
+      await newUser.save();
+      return {
+        message: 'User saved successfully',
+        statusCode: 201,
+        user: newUser,
+      };
     } catch (error) {
       console.log(error);
       if (error instanceof ValidationError) {
@@ -73,8 +73,8 @@ export class UserService {
   }
 
   async getAllUsers(
-    page: number = 1,
-    limit: number = 10,
+    page = 1,
+    limit = 10,
   ): Promise<{
     message: string;
     statusCode: number;
@@ -114,8 +114,8 @@ export class UserService {
 
   async getUser(
     accountId: string,
-    page: number = 1,
-    limit: number = 1,
+    page = 1,
+    limit = 1,
   ): Promise<IUserResponse> {
     try {
       const user = await this.userModel.findOne({ accountId }).exec();
@@ -124,18 +124,17 @@ export class UserService {
         throw new NotFoundException(`User not found`);
       }
 
-      // Calculate pagination parameters
       const skip = (page - 1) * limit;
 
-      // Sort the issueHistory by date and then paginate
       const totalIssueHistory = user.issueHistory.length;
       const sortedIssueHistory = user.issueHistory
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .sort((a, b) => {
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        })
         .slice(skip, skip + limit); // Slice for pagination
 
-      const totalPages = Math.ceil(totalIssueHistory / limit); // Total pages based on issue history
+      const totalPages = Math.ceil(totalIssueHistory / limit);
 
-      // Create a new user object with paginated issue history
       const userWithPagination: IUserWithPagination = {
         ...user.toObject(),
         issueHistory: sortedIssueHistory,

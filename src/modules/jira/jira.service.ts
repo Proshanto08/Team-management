@@ -9,7 +9,7 @@ import { HttpService } from '@nestjs/axios';
 import * as dotenv from 'dotenv';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Designation, Issue, User } from '../users/schemas/user.schema';
+import { Designation, IIssue, User } from '../users/schemas/user.schema';
 import {
   IJiraUserData,
   IUserResponse,
@@ -214,7 +214,7 @@ export class JiraService {
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
-      const issuesByDate: { [key: string]: Issue[] } = {};
+      const issuesByDate: { [key: string]: IIssue[] } = {};
 
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
@@ -292,7 +292,7 @@ export class JiraService {
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
-      const issuesByDate: { [key: string]: Issue[] } = {};
+      const issuesByDate: { [key: string]: IIssue[] } = {};
       const bugLinksByDate: { [key: string]: number } = {}; // Store bug links
 
       doneIssues.forEach((issue) => {
@@ -367,7 +367,7 @@ export class JiraService {
     accountId: string,
     date: string,
     counts: { Task: number; Bug: number; Story: number },
-    issues: Issue[],
+    issues: IIssue[],
   ): Promise<void> {
     try {
       const user = await this.userModel.findOne({ accountId });
@@ -403,7 +403,7 @@ export class JiraService {
     accountId: string,
     date: string,
     counts: { Task: number; Bug: number; Story: number },
-    issues: Issue[],
+    issues: IIssue[],
     codeToBugRatio: number, // Added codeToBugRatio as a parameter
   ): Promise<void> {
     try {
@@ -466,7 +466,7 @@ export class JiraService {
       const countsByDate: {
         [key: string]: { Task: number; Bug: number; Story: number };
       } = {};
-      const issuesByDate: { [key: string]: Issue[] } = {};
+      const issuesByDate: { [key: string]: IIssue[] } = {};
 
       notDoneIssues.forEach((issue) => {
         const dueDate = issue.fields.duedate?.split('T')[0];
@@ -544,7 +544,7 @@ export class JiraService {
           LinkedBugs: number;
         };
       } = {};
-      const issuesByDate: { [key: string]: Issue[] } = {};
+      const issuesByDate: { [key: string]: IIssue[] } = {};
 
       for (const issue of doneIssues) {
         const dueDate = issue.fields.duedate?.split('T')[0];
