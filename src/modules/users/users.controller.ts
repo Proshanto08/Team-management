@@ -34,11 +34,10 @@ export class UserController {
   async getUser(
     @Param('accountId') accountId: string,
     @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10
+    @Query('limit') limit: number = 10,
   ): Promise<IUserResponse> {
     return this.userService.getUser(accountId, page, limit);
   }
-  
 
   @Delete(':accountId')
   async deleteUser(
@@ -54,7 +53,9 @@ export class UserController {
   }
 
   @Put(':accountId/archive')
-  async archiveUser(@Param('accountId') accountId: string): Promise<{ message: string; statusCode: number }> {
+  async archiveUser(
+    @Param('accountId') accountId: string,
+  ): Promise<{ message: string; statusCode: number }> {
     if (!accountId) {
       throw new BadRequestException('accountId is required');
     }
